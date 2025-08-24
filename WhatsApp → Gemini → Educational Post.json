@@ -1,0 +1,451 @@
+{
+  "name": "WhatsApp → Gemini → Educational Post",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        -96
+      ],
+      "id": "582f56f7-b01e-44f3-8cca-4fa969d01228",
+      "name": "WhatsApp Trigger",
+      "webhookId": "640e77b1-7ee5-49b8-9a2f-02427ed25e19",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "vrTwXIys2U5471du",
+          "name": "WhatsApp OAuth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write 3 neat and engaging social media posts about this topic: {{$json[\"messages\"][0][\"text\"][\"body\"]}}.\n- Each post should be clear, readable, and concise.\n- Make posts suitable for Twitter/X, LinkedIn, or Instagram.\n- Do NOT include extra suggestions, references, or explanations.\n- Return the 3 posts in JSON format like this:\n\n[\n  { \"option\": 1, \"text\": \"Post text 1\" },\n  { \"option\": 2, \"text\": \"Post text 2\" },\n  { \"option\": 3, \"text\": \"Post text 3\" }\n]\n"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "You are a helpful assistant. Create neat, concise, and engaging posts about computer science topics (programming, AI, ML, data science, web/design, n8n, etc.). Keep the tone friendly and professional. Include short code examples or tips when relevant. Suggest hashtags and calls-to-action. Structure posts clearly for social media or blogs."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -96
+      ],
+      "id": "2ea9cd03-a689-4bfe-8570-4eb487982a4b",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8NYqiwq4SiLffh7n",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hcti.io/v1/image",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "=<div style=\"\n  width:1080px;\n  padding:50px;\n  background:#0f111a;\n  border-radius:20px;\n  font-family:'Fira Code', monospace;\n  color:#f8f8f2;\n  display:flex;\n  flex-direction:column;\n  gap:40px;\n\">\n\n  <!-- Header Number -->\n  <div style=\"font-size:72px; font-weight:bold; color:#00d1ff;\">\n    {{ $('WhatsApp Trigger').item.json.messages[0].text.body }}\n  </div>\n\n  <!-- Main Content -->\n  <pre style=\"\n    font-size:36px;\n    line-height:1.6;\n    white-space:pre-wrap;\n    color:#f8f8f2;\n    background:#1e1f29;\n    padding:40px;\n    border-radius:15px;\n    box-shadow: 0 0 20px rgba(0,0,0,0.5);\n  \">\n{{ $json[\"selectedText\"] }}\n  </pre>\n\n  <!-- Footer Hashtags -->\n  <div style=\"\n    font-size:28px;\n    color:#5fd1f3;\n    margin-top:20px;\n  \">\n    #SystemUnit #TechTips #ComputerHardware\n  </div>\n</div>\n"
+            },
+            {
+              "name": "css",
+              "value": "body { background: #f8f9fa; color: #333; font-family: Arial, sans-serif; } h1 { color: #1a73e8; }"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "91a724aa-186a-4bd9-97e8-3cd64332016a",
+      "name": "HTTP Request",
+      "credentials": {
+        "htmlcsstoimgApi": {
+          "id": "PMA0rfnpJOAH9Ue3",
+          "name": "Htmlcsstoimg account"
+        },
+        "httpBasicAuth": {
+          "id": "5Iy3ZYcsWPR6w80L",
+          "name": "HTTP Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "phoneNumberId": "=796695236851209",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+        "message": "=Hi! I generated 3 post options for your topic. Reply with the number (1, 2, or 3) of the one you like, or type \"new\" to generate fresh options:\n\n1) {{ $json.option1 }}\n\n2) {{ $json.option2 }}\n\n3) {{ $json.option3 }}\n",
+        "responseType": "freeText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -96
+      ],
+      "id": "7907982d-1e19-4248-a638-5722147ea04d",
+      "name": "Send message and wait for response",
+      "webhookId": "3b149db4-e7ac-4cef-8a1a-5fdf3ed64da3",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Eu5yRR1GUQLymfpv",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw AI output\nconst raw = $json[\"content\"][\"parts\"][0][\"text\"] || \"\";\n\n// Remove markdown fences ```json and ```\nconst clean = raw.replace(/```json|```/g, '').trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(clean);\n} catch (error) {\n  throw new Error(\"Failed to parse AI response as JSON: \" + error.message);\n}\n\n// Function to remove markdown symbols (*, _, #, **)\nfunction cleanMarkdown(text) {\n  return text.replace(/[*_#]/g, ''); // Remove *, _, and #\n}\n\n// Function to format text for Instagram post\nfunction formatText(text) {\n  if (!text) return \"\";\n  \n  // Remove markdown first\n  text = cleanMarkdown(text);\n\n  // Add line breaks after periods for readability\n  text = text.replace(/\\. /g, \".\\n\\n\");\n\n  // Convert keywords to hashtags (customize if needed)\n  text = text.replace(/\\b(ComputerHardware|SystemUnit|TechFacts|ComputerScience)\\b/g, '#$1');\n\n  return text;\n}\n\n// Return formatted options\nreturn [\n  {\n    json: {\n      option1: formatText(parsed[0]?.text || \"\"),\n      option2: formatText(parsed[1]?.text || \"\"),\n      option3: formatText(parsed[2]?.text || \"\")\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        -96
+      ],
+      "id": "e2dcac7e-00d9-4a5c-bc8b-7a3f9afcfe08",
+      "name": "Parse Options"
+    },
+    {
+      "parameters": {
+        "jsCode": "const choice = $json[\"data\"][\"text\"].trim();\nlet selectedText = \"\";\n\nconst parseOptions = $items(\"Parse Options\")[0].json;\n\nif (choice === \"1\") {\n  selectedText = parseOptions.option1;\n} else if (choice === \"2\") {\n  selectedText = parseOptions.option2;\n} else if (choice === \"3\") {\n  selectedText = parseOptions.option3;\n} else {\n  selectedText = \"User requested new options.\";\n}\n\nreturn [{ json: { selectedText } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -96
+      ],
+      "id": "951e9590-ee73-44b0-af05-716721abeb0a",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-1.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-1.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Create an engaging Instagram caption for this tech-themed image. \nHere is the text in the image:\n\"{{ $('Code').item.json.selectedText }}\".\n\nMake it:\n- Friendly and educational\n- Add 5 trending hashtags related to tech\n- Keep under 100 characters\n"
+            },
+            {
+              "content": "You are a social media content expert who writes engaging Instagram captions in a friendly, modern, and tech-savvy tone. Always include emojis, make it educational, and use trending tech hashtags. Do not repeat the text from the image verbatim; instead, summarize and make it appealing for Instagram.\n",
+              "role": "model"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        240
+      ],
+      "id": "17cf436a-f8dd-4dd5-a62a-564b67d49222",
+      "name": "Message a model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8NYqiwq4SiLffh7n",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1MAtxjb1bcf4p6j8B5C6hHBb7mRRblFHERAk5bStU9cA",
+          "mode": "list",
+          "cachedResultName": "Instagram posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAtxjb1bcf4p6j8B5C6hHBb7mRRblFHERAk5bStU9cA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1617002725,
+          "mode": "list",
+          "cachedResultName": "Sheet-1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAtxjb1bcf4p6j8B5C6hHBb7mRRblFHERAk5bStU9cA/edit#gid=1617002725"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Caption": "={{ $json.content.parts[0].text }}",
+            "Image URL": "={{ $('HTTP Request').item.json.url }}",
+            "Topic": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+            "Status": "pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Image URL",
+              "displayName": "Image URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Caption",
+              "displayName": "Caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        144,
+        240
+      ],
+      "id": "f292fb7c-2194-4e75-ae63-735c6ec14112",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "21O7AUY8KHhhPuoP",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1MAtxjb1bcf4p6j8B5C6hHBb7mRRblFHERAk5bStU9cA",
+          "mode": "list",
+          "cachedResultName": "Instagram posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAtxjb1bcf4p6j8B5C6hHBb7mRRblFHERAk5bStU9cA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1617002725,
+          "mode": "list",
+          "cachedResultName": "Sheet-1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAtxjb1bcf4p6j8B5C6hHBb7mRRblFHERAk5bStU9cA/edit#gid=1617002725"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "pending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        240
+      ],
+      "id": "34e3d24f-e99b-40b5-b19f-2c2e6aa58bc7",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "21O7AUY8KHhhPuoP",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Post Creation \n**In this step we  have created an educational post, the topic name was given by user through whatsapp,Content for posts was given by gemini in 3 choices user can select from, post was designed by html code and lastly shown on hcti.io/v1/image**",
+        "height": 208,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -560,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "84a0250e-6fdf-4788-b07a-3ff440d58e36",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Caption Generation \n**In this step we generated captions for our educational post, and then uploaded the topic name, caption and image url in Google sheets**",
+        "height": 176,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -560,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "08b58c2e-1b7d-4df7-8892-b567a1163223",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse Options",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Options": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "06e8300d-08c1-437d-b0e6-630353e1045e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9b85a6fd026240c645a563adecbef20423e4aadc31ebbbd2481f816ee81247a4"
+  },
+  "id": "hRhqV8p8QJuZePgD",
+  "tags": []
+}
